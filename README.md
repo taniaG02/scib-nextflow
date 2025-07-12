@@ -1,4 +1,4 @@
-# scib-based pipeline for benchmarking single-cell RNA-seq data integration methods
+# scib-based pipeline for benchmarking single-cell RNA-seq data integration methods in NextFlow
 
 Pipeline inspired in <https://github.com/theislab/scib-pipeline.git> from Luecken et al., 2022. For methods implemented in Python, it uses the `scib` Python module (<https://github.com/theislab/scib.git>). For methods implemented in R, check `src/R-integration-func.R`.
 
