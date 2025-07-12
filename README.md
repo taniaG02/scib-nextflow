@@ -1,11 +1,9 @@
-# scib-based pipeline for benchmarking single-cell RNA-seq data integration methods in NextFlow
+# ScIB Nextflow pipelines for benchmarking single-cell RNA-seq data integration methods
+
+This repository contains a Nextflow pipeline for processing and integrating single-cell RNA-seq data, with extended capabilities to run individual steps and considerate dependencies.
 
 Pipeline inspired in <https://github.com/theislab/scib-pipeline.git> from Luecken et al., 2022. For methods implemented in Python, it uses the `scib` Python module (<https://github.com/theislab/scib.git>). For methods implemented in R, check `src/R-integration-func.R`.
 
-
-## Notes
-
-These notes will be erased once this goes to a public repo. 
 
 ### Pipeline design
 
@@ -31,7 +29,6 @@ Regarding how the pipeline is organized:
 * `integration-R.sh`: it calls the R script. 
 * `integration-py.sh`: it calls the Python script. 
 * `metrics.sh`: it can also be parallelized using jobarrays. 
-
 
 ### Installation 
 
@@ -104,16 +101,6 @@ grep -v "Binary" R-integration-env.txt > R-integration-env-no-bin.txt
 cat filesWithPathsToChange.txt | xargs sed -i -e 's|/ data3/PipeLines_scripts/Rhapsody/miniconda3.v4.12|EL_NUEVO_PATH/miniconda3.v4.12|g'
 ```
 
-### Alternative to move environments 
-
-Create them from scratch. 
-
-
-### Alternative to scib
-
-I've found this other implementation of `scib` supposedly to be faster: <https://scib-metrics.readthedocs.io/en/stable/notebooks/lung_example.html>. The tables that can generate looks great. 
-
-
 ## References
 
 <table>
@@ -123,3 +110,138 @@ I've found this other implementation of `scib` supposedly to be faster: <https:/
   <a href='https://doi.org/10.1038/s41592-021-01336-8'>doi:10.1038/s41592-021-01336-8</a>
   </td></tr>
 </table>
+
+
+## Recently implemented changes
+
+### 1. Individual step execution: 
+
+Each module can be run independently using control parameters:
+
+``` bash
+# Run only preprocessing
+nextflow run main.nf --run_preprocessing true --run_integration_py false --run_integration_r false --run_metrics false
+
+# Run only Python integration
+nextflow run main.nf --run_preprocessing false --run_integration_py true --run_integration_r false --run_metrics false
+
+# Run only metrics with pre-existing data
+nextflow run main.nf --run_preprocessing false --run_integration_py false --run_integration_r false --run_metrics true \
+  --input_integrated_py "results/python_integrations/*.h5ad" \
+  --input_integrated_r "results/r_integrations/*.rds"
+
+```
+
+### 1. Functional Improvements
+#### Modular System
+- Toggle steps with run_* parameters
+- Alternative inputs for each module
+- Automatic dependency validation
+
+#### Robust Data Handling
+- Load intermediate results
+- Validate input files
+- Support for h5ad (Python) and rds (R) formats
+
+#### Enhanced Configuration
+- Method-specific parameters
+- Customizable analysis options
+
+## Installation
+```bash
+# 1. Clone repository
+git clone https://github.com/taniaG02/scib-nextflow.git
+cd scib-nextflow
+
+# 2. Install Nextflow
+curl -s https://get.nextflow.io | bash
+
+# 3. Create and activate Conda environment
+conda env create -f environment.yml
+conda activate scib-nextflow
+
+```
+
+## Basic usage
+```bash
+nextflow run main.nf \
+  --input "data/*.h5ad" \
+  --batch batch_key \
+  --labelkey cell_type \
+  --organism human
+```
+## Parameters
+
+| Parameter              | Description                          | Default Value  |
+|------------------------|--------------------------------------|---------------------|
+| `--input`              | Path to input files       | `data/*.h5ad`       |
+| `--batch`              | Batch/metadata column             | Required           |
+| `--labelkey`           | Cell type column              | Required           |
+| `--organism`           | Organism (human/mouse)             | `human`             |
+| `--hvg`                | Numbr of highly variable genes  | `5000`              |
+| `--run_preprocessing`  | Run preprocessgin step            | `true`              |
+| `--run_integration_py` | Run Python integration       | `true`              |
+| `--run_integration_r`  | Run R integration            | `true`              |
+| `--run_metrics`        | Compute evaluation metrics                    | `true`              |
+
+
+## Pipeline structure:
+
+
+
+## Supported integration methods
+
+Python: 
+``` bash
+--methods_py ['scanorama', 'bbknn', 'scvi', 'combat', 'NMFusion-CPMs', 'NMFusion-counts']
+```
+
+R:
+``` bash
+--methods_r ['Seurat-CCA', 'Seurat-RPCA', 'harmony', 'liger', 'fastmnn']
+```
+
+## Advanced execution
+Use preprocessed data
+
+``` bash
+nextflow run main.nf \
+  --run_preprocessing false \
+  --input_h5ad "preprocessed/adata.h5ad" \
+  --input_rds "preprocessed/data.rds" \
+  --run_integration_py true \
+  --run_metrics false
+```
+
+Combine specific integrations
+
+``` bash
+nextflow run main.nf \
+  --run_preprocessing false \
+  --run_integration_py false \
+  --run_integration_r false \
+  --run_metrics true \
+  --input_integrated_py "integrations/python/scanorama.h5ad" \
+  --input_integrated_r "integrations/r/harmony.rds"
+```
+
+Expected output structure
+
+``` text
+results/
+├── preprocessing/
+│   ├── adata.h5ad
+│   └── data.rds
+├── python_integrations/
+│   ├── scanorama.h5ad
+│   ├── bbknn.h5ad
+│   └── ...
+├── r_integrations/
+│   ├── Seurat-CCA.rds
+│   ├── harmony.rds
+│   └── ...
+└── metrics/
+    ├── combined_metrics.csv
+    ├── batch_correction/
+    └── biological_conservation/
+```
