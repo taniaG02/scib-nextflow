@@ -1,0 +1,13 @@
+name: r-integration-env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.4.3
+  - r-seurat
+  - bioconductor-batchelor
+  - r-liger
+  - r-harmony
+  - r-conos
+
