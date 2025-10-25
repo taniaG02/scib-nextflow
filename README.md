@@ -1,164 +1,70 @@
-# ScIB Nextflow pipelines for benchmarking single-cell RNA-seq data integration methods
+# scib-nextflow
 
-This repository contains a Nextflow pipeline for processing and integrating single-cell RNA-seq data, with extended capabilities to run individual steps and considerate dependencies.
+A reproducible Nextflow pipeline for single-cell RNA-seq data integration and benchmarking, implementing the scIB (single-cell Integration Benchmarking) framework.
 
-Pipeline inspired in <https://github.com/theislab/scib-pipeline.git> from Luecken et al., 2022. For methods implemented in Python, it uses the `scib` Python module (<https://github.com/theislab/scib.git>). For methods implemented in R, check `src/R-integration-func.R`.
+## Overview
 
+This pipeline provides a modular, reproducible implementation of [scIB](https://scib.readthedocs.io/en/latest/) in Nextflow, enabling systematic benchmarking of single-cell integration methods across different datasets and batch correction strategies.
 
-### Pipeline design
+**Pipeline inspired by:** [theislab/scib-pipeline](https://github.com/theislab/scib-pipeline.git) (Luecken et al., 2022)
 
-There are three main steps: 
+### Key Features
 
-1. Preprocessing: done in Python, the idea is to compute HVGs using the batch-aware `scib` implementation, normalize data using CPMs, and perform a batch-aware scaling. The last step is not actually necessary.  
-2. Integration: this part is divided into two parts: 
-    * Methods implemented in R. 
-    * Methods implemented in Python. 
-3. Computing metrics: take the results and compute metrics using `scib`. 
+- **Modular architecture**: Run complete workflow or individual steps independently
+- **Multiple integration methods**: Python-based (Scanorama, BBKNN, scVI, ComBat) and R-based (Seurat-CCA, Seurat-RPCA, Harmony, LIGER, FastMNN)
+- **Comprehensive metrics**: Automated calculation of batch correction and biological conservation metrics
+- **Environment isolation**: Separate conda environments for Python, R, and metrics computation
+- **Flexible execution**: Toggle steps on/off, skip preprocessing, or compute only metrics
+- **HPC-ready**: Configured for execution on local machines, HPC clusters, or cloud environments
 
-Regarding how the pipeline is organized: 
+## Pipeline Stages
 
-* `src`: contains the scripts calling methods from `scib` and the R functions implemented to run each method. 
-* `main.sh`: this script will call the functions for each step. This is probably not very optimal and it would be better to implement a Nextflow workflow. Maybe in future releases. 
-    **Parameters:**
-    * input: path to an AnnData
-    * output: directory used for output
-    * batch: batch variable
-    * hvg: 2000
-    * methods: methods to run. It can be an array with the specific methods or just all. 
-    In those cases where job arrays can be used, `main.sh` will call another sh script which will be in charge of calling the Python/R script.
-* `integration-R.sh`: it calls the R script. 
-* `integration-py.sh`: it calls the Python script. 
-* `metrics.sh`: it can also be parallelized using jobarrays. 
+The pipeline consists of four main stages:
 
-### Installation 
+1. **Preprocessing** (Python/Scanpy)
+   - Batch-aware highly variable gene (HVG) selection using scIB implementation
+   - CPM normalization
+   - Batch-aware scaling (optional)
 
-I have created some conda environments that in principle should work out . The yml files to create them are in `conda-envs`. As some packages show conflicts in the versions that can be installed, the conda envs are two (for now): 
+2. **Seurat Conversion** (Python)
+   - Convert preprocessed AnnData (.h5ad) to Seurat format (.rds) for R-based methods
 
-* `scib-cNMF-env`: it contains the python integration methods, `scib` and `NMFusion`. Not all the integration methods available in `scib` have been used. See below the comments on each of them: 
-    * `bbknn`: OK
-    * `combat`: uses the `scanpy` implementation: `scanpy.pp.combat`.
-    * `mnnpy`: this is an implementation of the `scran` integration method. Does not work, `fastmnn` should be enough. 
-    * `scanorama`: `pip install scanorama`: OK
-    * `scanvi`: OK, is part of scvi.
-    * `scgen`: OK
-    * `scvi`: OK
-    * `trvae`: seems to depend on python 3.6. They have an implementation in pytorch that shouldn't conflict with this env. 
-    * `trvaep`: pytorch version. Does not work. 
+3. **Integration**
+   - **Python methods**: Scanorama, BBKNN, scVI, scANVI, scGen, Combat, NMFusion
+   - **R methods**: Seurat-CCA, Seurat-RPCA, Harmony, LIGER, FastMNN, Conos
 
-* `R-integration-env`: it contains the dependencies for those methods implemented in R. In particular: 
-    * `rliger`: OK
-    * `Seurat` methods: CCA and RPCA: OK
-    * `fastMNN`: OK
-    * `harmony`: OK
-    * `conos`: OK
+4. **Metrics Computation** (Python/scIB)
+   - Batch correction metrics: kBET, LISI, ASW (batch)
+   - Biological conservation metrics: ARI, NMI, ASW (label), silhouette score
+   - Combined scores and visualizations
 
-* `scib-metrics-env`: it contains the dependencies for computing the metrics. 
+## Installation
 
-### Making conda environments portable 
+### Requirements
 
-It worked once with Carlos, so let's see what happens. The idea is to change all the paths in each environment so that it can be used independently of the user. The workflow would be as follows: 
+- Nextflow >= 21.04.0
+- Conda/Mamba or Docker/Singularity
+- For HPC: SLURM, SGE, or PBS job scheduler
 
-**Note:** It seems he created a complete miniconda, not just the env. Makes sese: there must be other files required in other locations. What I don't get is that I created a new env in my preexisting conda, bt anyway. 
-
-1. Copy my miniconda changing its name. 
-2. Remove all envs not related to scib
-3. Create a txt with all files with the new path. 
-4. Run the following line of code to substitute these paths with a new one (by CTorroja): 
+### Quick Start
 
 ```bash
-cat filesWithPathsToChange.txt | xargs sed -i -e 's|/ data3/PipeLines_scripts/Rhapsody/miniconda3.v4.12|EL_NUEVO_PATH/miniconda3.v4.12|g'
+# Clone the repository
+git clone https://github.com/taniaG02/scib-nextflow.git
+cd scib-nextflow
+
+# Install Nextflow (if not already installed)
+curl -s https://get.nextflow.io | bash
+
+# Test with example data
+nextflow run main.nf --input data/test.h5ad --batch batch --label_key celltype --organism human
 ```
 
-This step must be done by Lucía. In principle, this should work out. In addition, check the `` file, which loads this new conda for its use. 
+## Usage
 
-1. Checking files with my path
+### Basic Usage
 
-```bash
-grep -r "/home/dmananesc" scib-metrics-env > scib-metrics-env.txt
-grep -r "/home/dmananesc" scib-cNMF-env > scib-cNMF-env.txt
-grep -r "/home/dmananesc" R-integration-env > R-integration-env-path.txt
-```
-
-Carlos sent me this code, maybe its better: 
-
-```bash
-grep -rP "dmananesc" scib-metrics-env | cut -f1 -d":" | sort | uniq > scib-metrics-env.txt
-grep -rP "dmananesc" scib-cNMF-env | cut -f1 -d":" | sort | uniq > scib-cNMF-env.txt
-grep -rP "dmananesc" R-integration-env | cut -f1 -d":" | sort | uniq > R-integration-env.txt
-```
-
-Then, to remove those binary files where a match has been found: 
-
-```bash 
-grep -v "Binary" scib-metrics-env.txt > scib-metrics-env-no-bin.txt
-grep -v "Binary" scib-cNMF-env.txt > scib-cNMF-env-no-bin.txt
-grep -v "Binary" R-integration-env.txt > R-integration-env-no-bin.txt
-```
-
-2. Modifying matches
-
-```bash
-cat filesWithPathsToChange.txt | xargs sed -i -e 's|/ data3/PipeLines_scripts/Rhapsody/miniconda3.v4.12|EL_NUEVO_PATH/miniconda3.v4.12|g'
-```
-
-## References
-
-<table>
-  <tr><td> Luecken, M.D., Büttner, M., Chaichoompu, K. et al. (2022). Benchmarking atlas-level data integration in single-cell genomics.
-  <i>Nat Methods</i>
-   <b>19</b> 41-50
-  <a href='https://doi.org/10.1038/s41592-021-01336-8'>doi:10.1038/s41592-021-01336-8</a>
-  </td></tr>
-</table>
-
-
-# Implementation scIB-Nextflow
-
-Este repositorio contiene una implementación de **[scIB](https://scib.readthedocs.io/en/latest/)** en **Nextflow**, que permite ejecutar de manera reproducible y modular un flujo de análisis para la **integración de datos de scRNA-seq** y el cálculo de métricas de calidad.
-
-El pipeline incluye las siguientes etapas:  
-
-1. **Preprocesamiento** de los datos (`.h5ad`)  
-2. **Conversión a formato Seurat** (`.rds`)  
-3. **Integración con métodos en Python** (Scanorama, BBKNN, scVI, ComBat)  
-4. **Integración con métodos en R** (Seurat-CCA, Seurat-RPCA, Harmony, LIGER, FastMNN)  
-5. **Cálculo de métricas** para evaluar la calidad de la integración  
-
-
-## Requisitos
-
-- [Nextflow](https://www.nextflow.io/) ≥ 22.10  
-- [Conda](https://docs.conda.io/en/latest/) (o Mamba)  
-- Python ≥ 3.8 y R ≥ 4.0  
-
-Los módulos usan distintos entornos de conda:  
-- `scib-cNMF-env` → preprocesamiento e integración en Python  
-- `r-integration-env` → integración en R y conversión a Seurat  
-- `scib-metrics-env` → cálculo de métricas  
-
-## Estructura
-scib-nextflow/
-├── main.nf
-├── nextflow.config
-├── modules/
-│   ├── preprocessing.nf
-│   ├── save_seurat.nf
-│   ├── integration_py.nf
-│   ├── integration_r.nf
-│   └── metrics.nf
-├── bin/                  # Scripts auxiliares en Python/R
-│   ├── preprocessing.py
-│   ├── save-seurat.py
-│   ├── py_integration.py
-│   ├── R_integration.R
-│   └── metrics.py
-└── results/              # Resultados organizados por etapa
-
-
-
-## Ejecución
-
-### 1. Preprocesamiento completo + integración + métricas
+Run the complete pipeline:
 
 ```bash
 nextflow run main.nf \
@@ -169,69 +75,314 @@ nextflow run main.nf \
   --output results
 ```
 
-### 2. Usar datos ya preprocesadosas
+### Advanced Usage
 
+#### Run only preprocessing and Python integration:
+
+```bash
+nextflow run main.nf \
+  --input data/mydata.h5ad \
+  --batch batch_column \
+  --label_key cell_type \
+  --organism human \
+  --run_integration_r false \
+  --run_metrics false
+```
+
+#### Skip preprocessing (use pre-processed data):
+
+```bash
 nextflow run main.nf \
   --input_h5ad results/preprocessing/adata-preprocessed.h5ad \
   --input_rds results/preprocessing/seurat-preprocessed.rds \
   --batch batch_column \
   --label_key cell_type \
-  --organism mouse
+  --run_preprocessing false
+```
 
-### 3. Ejecutar solo métricas con integraciones existentes
+#### Compute metrics only (from existing integrated data):
 
+```bash
 nextflow run main.nf \
-  --input_integrated results/Integrated/scanorama-integrated.h5ad,results/Integrated/harmony-integrated.h5ad \
+  --input_integrated "results/Integrated/scanorama-integrated.h5ad,results/Integrated/harmony-integrated.h5ad" \
   --input_h5ad results/preprocessing/adata-preprocessed.h5ad \
   --batch batch_column \
   --label_key cell_type \
-  --organism human \
   --run_preprocessing false \
   --run_integration_py false \
   --run_integration_r false \
   --run_metrics true
+```
 
+#### Run specific methods only:
 
-### Parámetros principales
-| Parámetro              | Descripción                                                           |
-| ---------------------- | --------------------------------------------------------------------- |
-| `--input`              | Archivo `.h5ad` de entrada (solo si se ejecuta el preprocesamiento).  |
-| `--input_h5ad`         | Archivo `.h5ad` ya preprocesado.                                      |
-| `--input_rds`          | Archivo `.rds` de Seurat ya preprocesado.                             |
-| `--input_integrated`   | Lista de archivos `.h5ad` integrados (para solo métricas).            |
-| `--batch`              | Columna con la información de lote.                                   |
-| `--label_key`          | Columna con las etiquetas biológicas (ej. tipo celular).              |
-| `--organism`           | Organismo (`human` o `mouse`).                                        |
-| `--hvg`                | Número de genes variables a usar (default: 2000).                     |
-| `--methods`            | Métodos a ejecutar, separados por coma (`scanorama,harmony`) o `all`. |
-| `--output`             | Directorio de salida (default: `results`).                            |
-| `--run_preprocessing`  | `true/false` para ejecutar la etapa de preprocesamiento.              |
-| `--run_integration_py` | Ejecutar integración en Python.                                       |
-| `--run_integration_r`  | Ejecutar integración en R.                                            |
-| `--run_metrics`        | Ejecutar cálculo de métricas.                                         |
-
-
-## Resultados
-
-Los resultados se organizan automáticamente en subdirectorios:
-
-* results/preprocessing/ → archivos preprocesados (.h5ad, .rds)
-* results/Integrated/ → integraciones por método (*-integrated.h5ad)
-* results/Metrics/ → métricas por método (*_metrics.csv)
-
-## Funcionamiento
-
-- Preprocessing: toma los archivos .h5ad originales y los normaliza, filtrando genes y células según los parámetros.
-- Save Seurat: convierte los datos preprocesados a .rds para los métodos de integración en R.
-- Integration Python: ejecuta métodos como Scanorama, BBKNN, scVI o ComBat.
-- Integration R: ejecuta métodos como Seurat-CCA, Seurat-RPCA, Harmony, LIGER o FastMNN.
-- Metrics Calculation: compara los datos integrados con los originales para evaluar la calidad de la integración.
-
-## Ejemplo de uso
-
+```bash
 nextflow run main.nf \
-  --input data/pbmc.h5ad \
-  --batch sample \
+  --input data/mydata.h5ad \
+  --batch batch_column \
   --label_key cell_type \
-  --organism human \
-  --methods scanorama,harmony
+  --methods scanorama,harmony,scvi
+```
+
+## Parameters
+
+### Required Parameters
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--input` | Input AnnData file (.h5ad) for preprocessing | `data/mydata.h5ad` |
+| `--batch` | Column name containing batch information | `batch` |
+| `--label_key` | Column name with biological labels (e.g., cell type) | `cell_type` |
+| `--organism` | Organism for the dataset | `human` or `mouse` |
+
+### Optional Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `--input_h5ad` | Pre-processed AnnData file (skips preprocessing) | `null` |
+| `--input_rds` | Pre-processed Seurat file (skips conversion) | `null` |
+| `--input_integrated` | Comma-separated list of integrated .h5ad files | `null` |
+| `--hvg` | Number of highly variable genes to select | `2000` |
+| `--methods` | Integration methods to run (`all` or comma-separated) | `all` |
+| `--output` | Output directory for results | `results` |
+
+### Execution Control Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `--run_preprocessing` | Execute preprocessing step | `true` |
+| `--run_integration_py` | Execute Python integration methods | `true` |
+| `--run_integration_r` | Execute R integration methods | `true` |
+| `--run_metrics` | Execute metrics calculation | `true` |
+
+## Output Structure
+
+Results are automatically organized into subdirectories:
+
+```
+results/
+├── preprocessing/
+│   ├── adata-preprocessed.h5ad    # Preprocessed AnnData
+│   └── seurat-preprocessed.rds    # Preprocessed Seurat object
+├── Integrated/
+│   ├── scanorama-integrated.h5ad  # Scanorama integration
+│   ├── harmony-integrated.h5ad    # Harmony integration
+│   ├── scvi-integrated.h5ad       # scVI integration
+│   └── ...                        # Other methods
+└── Metrics/
+    ├── scanorama_metrics.csv      # Metrics for Scanorama
+    ├── harmony_metrics.csv        # Metrics for Harmony
+    └── ...                        # Metrics for other methods
+```
+
+## Repository Structure
+
+```
+scib-nextflow/
+├── main.nf                    # Main workflow entry point
+├── nextflow.config            # Pipeline configuration
+├── modules/                   # Nextflow process modules
+│   ├── preprocessing.nf       # Preprocessing module
+│   ├── save_seurat.nf         # AnnData to Seurat conversion
+│   ├── integration_py.nf      # Python integration methods
+│   ├── integration_r.nf       # R integration methods
+│   └── metrics.nf             # Metrics computation
+├── bin/                       # Executable scripts
+│   ├── preprocessing.py       # Preprocessing script
+│   ├── save-seurat.py         # Conversion script
+│   ├── py_integration.py      # Python integration wrapper
+│   ├── R_integration.R        # R integration wrapper
+│   └── metrics.py             # Metrics calculation script
+├── conda-envs/                # Conda environment specifications
+│   ├── scib-cNMF-env.yml      # Python methods environment
+│   ├── R-integration-env.yml  # R methods environment
+│   └── scib-metrics-env.yml   # Metrics environment
+└── README.md                  # This file
+```
+
+## Conda Environments
+
+The pipeline uses three separate conda environments to avoid dependency conflicts:
+
+### 1. `scib-cNMF-env` (Python Integration)
+Contains Python-based integration methods:
+- scIB module
+- Scanorama
+- BBKNN
+- scVI/scANVI
+- scGen
+- Combat (via Scanpy)
+- NMFusion
+
+### 2. `R-integration-env` (R Integration)
+Contains R-based integration methods:
+- Seurat (CCA and RPCA)
+- Harmony
+- LIGER
+- FastMNN
+- Conos
+
+### 3. `scib-metrics-env` (Metrics)
+Contains dependencies for computing scIB metrics:
+- scIB Python module
+- Metrics computation tools
+
+## Execution Profiles
+
+The pipeline supports multiple execution environments through Nextflow profiles:
+
+### Local Execution (default)
+
+```bash
+nextflow run main.nf --input data/mydata.h5ad [other params]
+```
+
+### SLURM Cluster
+
+```bash
+nextflow run main.nf -profile slurm --input data/mydata.h5ad [other params]
+```
+
+### SGE Cluster
+
+```bash
+nextflow run main.nf -profile sge --input data/mydata.h5ad [other params]
+```
+
+### Using Docker/Singularity
+
+```bash
+nextflow run main.nf -profile docker --input data/mydata.h5ad [other params]
+# or
+nextflow run main.nf -profile singularity --input data/mydata.h5ad [other params]
+```
+
+## Configuration
+
+### Custom Resource Allocation
+
+Modify `nextflow.config` to adjust resources per process:
+
+```groovy
+process {
+    withName: PREPROCESSING {
+        cpus = 4
+        memory = '16 GB'
+        time = '2h'
+    }
+    withName: INTEGRATION_PYTHON {
+        cpus = 8
+        memory = '32 GB'
+        time = '4h'
+    }
+}
+```
+
+### Custom HPC Configuration
+
+For specific cluster configurations, create a custom profile in `nextflow.config`:
+
+```groovy
+profiles {
+    myCluster {
+        process.executor = 'slurm'
+        process.queue = 'normal'
+        process.clusterOptions = '--account=myproject'
+    }
+}
+```
+
+## Integration Methods
+
+### Python-based Methods
+
+| Method | Description | Reference |
+|--------|-------------|-----------|
+| **Scanorama** | Panorama-based integration for large datasets | Hie et al., 2019 |
+| **BBKNN** | Batch balanced k-nearest neighbors | Polański et al., 2020 |
+| **scVI** | Variational inference-based deep learning | Lopez et al., 2018 |
+| **scANVI** | Semi-supervised variant of scVI | Xu et al., 2021 |
+| **Combat** | Classical batch correction method | Johnson et al., 2007 |
+| **scGen** | Generative modeling for perturbation prediction | Lotfollahi et al., 2019 |
+
+### R-based Methods
+
+| Method | Description | Reference |
+|--------|-------------|-----------|
+| **Seurat CCA** | Canonical correlation analysis | Stuart et al., 2019 |
+| **Seurat RPCA** | Reciprocal PCA integration | Stuart et al., 2019 |
+| **Harmony** | Fast integration with linear models | Korsunsky et al., 2019 |
+| **LIGER** | Integrative non-negative matrix factorization | Welch et al., 2019 |
+| **FastMNN** | Fast mutual nearest neighbors | Haghverdi et al., 2018 |
+| **Conos** | Joint graph-based integration | Barkas et al., 2019 |
+
+## Metrics
+
+The pipeline computes comprehensive metrics for evaluating integration quality:
+
+### Batch Correction Metrics
+- **kBET**: k-nearest neighbor batch effect test
+- **LISI**: Local inverse Simpson's index
+- **ASW (batch)**: Average silhouette width for batch mixing
+
+### Biological Conservation Metrics
+- **ARI**: Adjusted Rand index
+- **NMI**: Normalized mutual information
+- **ASW (label)**: Average silhouette width for biological labels
+- **Isolated labels**: F1 score for rare cell type detection
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Conda environment conflicts**
+   - Solution: Ensure you have the latest versions of conda/mamba
+   - Try: `conda clean --all` before creating environments
+
+2. **Memory errors during integration**
+   - Solution: Increase memory allocation in `nextflow.config`
+   - Try: `--max_memory '64GB'` or adjust per-process memory
+
+3. **Missing input files**
+   - Solution: Verify input paths are correct and files exist
+   - Check: File permissions and path accessibility
+
+4. **HPC job failures**
+   - Solution: Check cluster-specific logs in `work/` directory
+   - Verify: Queue names, account settings, and resource limits
+
+## Citation
+
+If you use this pipeline in your research, please cite:
+
+**Original scIB framework:**
+- Luecken, M.D., Büttner, M., Chaichoompu, K. et al. (2022). Benchmarking atlas-level data integration in single-cell genomics. *Nature Methods* 19, 41-50. [https://doi.org/10.1038/s41592-021-01336-8](https://doi.org/10.1038/s41592-021-01336-8)
+
+**Nextflow:**
+- Di Tommaso, P., Chatzou, M., Floden, E. W., Barja, P. P., Palumbo, E., & Notredame, C. (2017). Nextflow enables reproducible computational workflows. *Nature Biotechnology*, 35(4), 316-319.
+
+## Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+
+## Contact
+
+For questions, issues, or suggestions:
+- Open an issue on [GitHub](https://github.com/taniaG02/scib-nextflow/issues)
+- Contact: tania.gonzalo@externo.cnic.es
+
+## Acknowledgments
+
+- Original scIB pipeline developers at Theislab
+- CNIC Bioinformatics Unit
+- Nextflow community and documentation
+
+## References
+
+Complete list of method references available in the [original scIB publication](https://www.nature.com/articles/s41592-021-01336-8).
