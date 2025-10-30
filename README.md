@@ -212,7 +212,6 @@ Contains Python-based integration methods:
 - scVI/scANVI
 - scGen
 - Combat (via Scanpy)
-- NMFusion
 
 ### 2. `R-integration-env` (R Integration)
 Contains R-based integration methods:
@@ -227,34 +226,14 @@ Contains dependencies for computing scIB metrics:
 - scIB Python module
 - Metrics computation tools
 
-## Execution Profiles
+## Execution
 
-The pipeline supports multiple execution environments through Nextflow profiles:
+The pipeline supports local execution environments through Nextflow:
 
 ### Local Execution (default)
 
 ```bash
 nextflow run main.nf --input data/mydata.h5ad [other params]
-```
-
-### SLURM Cluster
-
-```bash
-nextflow run main.nf -profile slurm --input data/mydata.h5ad [other params]
-```
-
-### SGE Cluster
-
-```bash
-nextflow run main.nf -profile sge --input data/mydata.h5ad [other params]
-```
-
-### Using Docker/Singularity
-
-```bash
-nextflow run main.nf -profile docker --input data/mydata.h5ad [other params]
-# or
-nextflow run main.nf -profile singularity --input data/mydata.h5ad [other params]
 ```
 
 ## Configuration
@@ -274,20 +253,6 @@ process {
         cpus = 8
         memory = '32 GB'
         time = '4h'
-    }
-}
-```
-
-### Custom HPC Configuration
-
-For specific cluster configurations, create a custom profile in `nextflow.config`:
-
-```groovy
-profiles {
-    myCluster {
-        process.executor = 'slurm'
-        process.queue = 'normal'
-        process.clusterOptions = '--account=myproject'
     }
 }
 ```
@@ -331,58 +296,15 @@ The pipeline computes comprehensive metrics for evaluating integration quality:
 - **ASW (label)**: Average silhouette width for biological labels
 - **Isolated labels**: F1 score for rare cell type detection
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Conda environment conflicts**
-   - Solution: Ensure you have the latest versions of conda/mamba
-   - Try: `conda clean --all` before creating environments
-
-2. **Memory errors during integration**
-   - Solution: Increase memory allocation in `nextflow.config`
-   - Try: `--max_memory '64GB'` or adjust per-process memory
-
-3. **Missing input files**
-   - Solution: Verify input paths are correct and files exist
-   - Check: File permissions and path accessibility
-
-4. **HPC job failures**
-   - Solution: Check cluster-specific logs in `work/` directory
-   - Verify: Queue names, account settings, and resource limits
-
-## Citation
-
-If you use this pipeline in your research, please cite:
-
-**Original scIB framework:**
-- Luecken, M.D., Büttner, M., Chaichoompu, K. et al. (2022). Benchmarking atlas-level data integration in single-cell genomics. *Nature Methods* 19, 41-50. [https://doi.org/10.1038/s41592-021-01336-8](https://doi.org/10.1038/s41592-021-01336-8)
-
-**Nextflow:**
-- Di Tommaso, P., Chatzou, M., Floden, E. W., Barja, P. P., Palumbo, E., & Notredame, C. (2017). Nextflow enables reproducible computational workflows. *Nature Biotechnology*, 35(4), 316-319.
-
-## Contributing
-
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-
 ## Contact
 
 For questions, issues, or suggestions:
 - Open an issue on [GitHub](https://github.com/taniaG02/scib-nextflow/issues)
 - Contact: tania.gonzalo@externo.cnic.es
 
-## Acknowledgments
-
-- Original scIB pipeline developers at Theislab
-- CNIC Bioinformatics Unit
-- Nextflow community and documentation
-
 ## References
 
 Complete list of method references available in the [original scIB publication](https://www.nature.com/articles/s41592-021-01336-8).
+Hie et al., 2019
+Polański et al., 2020
+... complete with link...
