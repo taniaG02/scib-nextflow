@@ -2,18 +2,18 @@
 nextflow.enable.dsl=2
 
 // Import modules
-include { PREPROCESSING } from '/home/tgonzalos/Documents/scib-nextflow/modules/preprocessing.nf'
-include { SAVE_SEURAT } from '/home/tgonzalos/Documents/scib-nextflow/modules/save_seurat.nf'
-include { INTEGRATION_PY } from '/home/tgonzalos/Documents/scib-nextflow/modules/integration_py.nf'
-include { INTEGRATION_R } from '/home/tgonzalos/Documents/scib-nextflow/modules/integration_r.nf'
-include { METRICS } from '/home/tgonzalos/Documents/scib-nextflow/modules/metrics.nf'
+include { PREPROCESSING } from "${projectDir}/modules/preprocessing.nf"
+include { SAVE_SEURAT }   from "${projectDir}/modules/save_seurat.nf"
+include { INTEGRATION_PY } from "${projectDir}/modules/integration_py.nf"
+include { INTEGRATION_R }  from "${projectDir}/modules/integration_r.nf"
+include { METRICS }        from "${projectDir}/modules/metrics.nf"
+include { COMBINE_METRICS; PLOT_METRICS } from "${projectDir}/modules/combine_metrics.nf"
 
-//include { PREPROCESSING } from "${projectDir}/modules/preprocessing.nf"
-//include { SAVE_SEURAT }   from "${projectDir}/modules/save_seurat.nf"
-//include { INTEGRATION_PY } from "${projectDir}/modules/integration_py.nf"
-//include { INTEGRATION_R }  from "${projectDir}/modules/integration_r.nf"
-//include { METRICS }        from "${projectDir}/modules/metrics.nf"
-
+//include { PREPROCESSING } from "./modules/preprocessing.nf"
+//include { SAVE_SEURAT }   from "./modules/save_seurat.nf"
+//include { INTEGRATION_PY } from "./modules/integration_py.nf"
+//include { INTEGRATION_R }  from "./modules/integration_r.nf"
+//include { METRICS }        from "./modules/metrics.nf"
 
 // Parameter validation
 if (!params.batch) {
@@ -53,9 +53,7 @@ params.input_integrated = null
 // Main workflow
 workflow {
 
-    // ----------------------------
     // PRE-PROCESSING
-    // ----------------------------
     if (params.run_preprocessing) {
         if (!params.input) error "Se requiere --input cuando --run_preprocessing=true"
         input_ad = Channel.fromPath(params.input)
@@ -82,9 +80,7 @@ workflow {
         preproc_rds = Channel.fromPath(params.input_rds)
     }
 
-    // ----------------------------
     // PYTHON INTEGRATION
-    // ----------------------------
     if (params.run_integration_py && methods_py) {
         methods_py_ch = Channel.fromList(methods_py)
         py_inputs = methods_py_ch.combine(preproc_h5ad)
@@ -92,9 +88,7 @@ workflow {
         integrated = INTEGRATION_PY.out.integrated
     }
 
-    // ----------------------------
     // R INTEGRATION
-    // ----------------------------
     if (params.run_integration_r && methods_r) {
         methods_r_ch = Channel.fromList(methods_r)
         r_inputs = methods_r_ch.combine(preproc_rds)
@@ -102,32 +96,25 @@ workflow {
         integrated = integrated.mix(INTEGRATION_R.out.integrated)
     }
 
-    // ----------------------------
     // Alternative entries
-    // ----------------------------
     if (!params.run_integration_py && !params.run_integration_r && params.input_integrated) {
         def files_list = params.input_integrated.split(',').collect{ it.trim() }.collect { file(it) }
         integrated = Channel.fromList(files_list)
     }
 
-    // ----------------------------
     // MÉTRICS
-    // ----------------------------
     if (params.run_metrics) {
 
         println "[INFO] Iniciando cálculo de métricas (esperando integración completada)"
 
-        // Mapea los archivos integrados a su método
         integrated_files_ch = integrated.map { f ->
             def name = f.getBaseName()
             def method = name.replaceFirst(/-integrated$/, '')
             tuple(method, f)
         }
 
-        // Combina con el archivo preprocesado (no corregido)
         metrics_inputs_ch = integrated_files_ch.combine(preproc_h5ad)
 
-        // Ejecuta métricas solo cuando los inputs estén disponibles
         METRICS(
             metrics_inputs_ch,
             params.batch,
@@ -135,5 +122,23 @@ workflow {
             params.organism,
             params.hvg
         )
+
+        // Recoger todas las métricas emitidas por METRICS
+        all_metric_files = METRICS.out.metrics.collect()
+
+        // Combinar métricas en una sola tabla
+        COMBINE_METRICS(all_metric_files)
+
+        if (params.generate_plots) {
+            reference_ch = params.reference_metrics 
+                ? Channel.fromPath(params.reference_metrics)
+                : Channel.value(file('NO_FILE'))
+            
+            PLOT_METRICS(
+                COMBINE_METRICS.out.combined_metrics,
+                reference_ch
+            )
+        }
     }
+
 }
