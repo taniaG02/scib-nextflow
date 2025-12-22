@@ -1,7 +1,7 @@
 process SAVE_SEURAT {
     
     label 'high_memory'
-	publishDir "/home/tgonzalos/documents/TGS25/PE_TGS/results/preprocessing", mode: 'copy'
+	publishDir "${params.output ?: 'results'}/preprocessing", mode: 'copy'
 
     conda = '/home/tgonzalos/miniconda3/envs/r-integration-env'
 

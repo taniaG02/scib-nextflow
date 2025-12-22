@@ -9,12 +9,6 @@ include { INTEGRATION_R }  from "${projectDir}/modules/integration_r.nf"
 include { METRICS }        from "${projectDir}/modules/metrics.nf"
 include { COMBINE_METRICS; PLOT_METRICS } from "${projectDir}/modules/combine_metrics.nf"
 
-//include { PREPROCESSING } from "./modules/preprocessing.nf"
-//include { SAVE_SEURAT }   from "./modules/save_seurat.nf"
-//include { INTEGRATION_PY } from "./modules/integration_py.nf"
-//include { INTEGRATION_R }  from "./modules/integration_r.nf"
-//include { METRICS }        from "./modules/metrics.nf"
-
 // Parameter validation
 if (!params.batch) {
     error "Please specify --batch parameter"
@@ -55,11 +49,11 @@ workflow {
 
     // PRE-PROCESSING
     if (params.run_preprocessing) {
-        if (!params.input) error "Se requiere --input cuando --run_preprocessing=true"
+        if (!params.input) error "--input is required when --run_preprocessing=true"
         input_ad = Channel.fromPath(params.input)
     } else {
-        if (!params.input_h5ad) error "Se requiere --input_h5ad cuando --run_preprocessing=false"
-        if (!params.input_rds) error "Se requiere --input_rds cuando --run_preprocessing=false"
+        if (!params.input_h5ad) error "--input_h5ad is required when --run_preprocessing=false"
+        if (!params.input_rds) error "--input_rds is required when --run_preprocessing=false"
     }
 
     preproc_h5ad = Channel.empty()
@@ -105,7 +99,7 @@ workflow {
     // MÉTRICS
     if (params.run_metrics) {
 
-        println "[INFO] Iniciando cálculo de métricas (esperando integración completada)"
+        println "[INFO] Starting metrics calculation (waiting for integration to complete)"
 
         integrated_files_ch = integrated.map { f ->
             def name = f.getBaseName()
@@ -123,10 +117,10 @@ workflow {
             params.hvg
         )
 
-        // Recoger todas las métricas emitidas por METRICS
+        // Collect all metrics issued by METRICS
         all_metric_files = METRICS.out.metrics.collect()
 
-        // Combinar métricas en una sola tabla
+        // Combine metrics into a single table
         COMBINE_METRICS(all_metric_files)
 
         if (params.generate_plots) {
