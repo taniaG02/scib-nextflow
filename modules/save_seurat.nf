@@ -3,7 +3,7 @@ process SAVE_SEURAT {
     label 'high_memory'
 	publishDir "${params.output ?: 'results'}/preprocessing", mode: 'copy'
 
-    conda = '/home/tgonzalos/miniconda3/envs/r-integration-env'
+    conda = "${params.conda_base}/envs/r-integration-env"
 
     input:
         path adata_preprocessed

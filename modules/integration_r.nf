@@ -2,7 +2,7 @@ process INTEGRATION_R {
     tag { method }
     publishDir "${params.output}/Integrated", mode: 'copy'
     
-    conda = '/home/tgonzalos/miniconda3/envs/r-integration-env'
+    conda = "${params.conda_base}/envs/r-integration-env"
 
     input:
 	tuple val(method), path(seurat_rds)

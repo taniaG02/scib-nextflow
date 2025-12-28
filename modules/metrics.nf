@@ -3,7 +3,7 @@ process METRICS {
     tag { method }
     publishDir "${params.output ?: 'results'}/Metrics", mode: 'copy'
 
-    conda = '/home/tgonzalos/miniconda3/envs/scib-metrics-env'
+    conda = "${params.conda_base}/envs/scib-metrics-env"
 
     input:
     tuple val(method), path(integrated_adata), path(uncorrected_adata)

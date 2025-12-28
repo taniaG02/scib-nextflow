@@ -113,6 +113,7 @@ nextflow run main.nf \
 | `--outdir` | Output directory for results | `./scib_results` |
 | `--generate_plots` | Generate comparison plots | `false` |
 | `--reference_metrics` | Reference metrics CSV for comparison | `null` |
+| `--conda_base` | Base path to conda installation | Auto-detected or `~/miniconda3` |
 
 ### Execution Control Parameters
 

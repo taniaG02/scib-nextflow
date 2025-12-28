@@ -4,7 +4,7 @@ process COMBINE_METRICS {
     tag "Combining metrics"
     publishDir "${params.outdir}/Metrics", mode: 'copy'
     
-    conda params.conda_metrics_env
+    conda = "${params.conda_base}/envs/scib-cNMF-env"
     
     input:
     path metric_files  // Collects all *_metrics.csv files
