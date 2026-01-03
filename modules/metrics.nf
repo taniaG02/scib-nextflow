@@ -3,7 +3,7 @@ process METRICS {
     tag { method }
     publishDir "${params.output ?: 'results'}/Metrics", mode: 'copy'
 
-    conda = "${params.conda_base}/envs/scib-metrics-env"
+    conda "${params.conda_base}/envs/scib-metrics-env"
 
     input:
     tuple val(method), path(integrated_adata), path(uncorrected_adata)
@@ -24,7 +24,7 @@ process METRICS {
 
     # Determinar tipo automáticamente
     type_arg="full"
-    if [[ "${method}" == "harmony" || "${method}" == "conos" || "${method}" == "liger" || "${method}" == "fastmnn" || "${method}" == "NMFusion-CPMs-NMF-space" || "${method}" == "NMFusion-counts-NMF-space" ]]; then
+    if [[ "${method}" == "harmony" || "${method}" == "conos" || "${method}" == "liger" || "${method}" == "fastmnn" ]]; then
         type_arg="embed"
     elif [[ "${method}" == "bbknn" ]]; then
         type_arg="knn"

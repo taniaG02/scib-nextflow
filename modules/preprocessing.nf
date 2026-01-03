@@ -3,7 +3,7 @@ process PREPROCESSING {
     label 'high_memory'
 	publishDir "${params.output ?: 'results'}/preprocessing", mode: 'copy'
 
-    conda = "${params.conda_base}/envs/scib-cNMF-env"
+    conda "${params.conda_base}/envs/scib-cNMF-env"
 
     input:
         path adata

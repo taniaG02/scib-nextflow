@@ -3,7 +3,7 @@ process SAVE_SEURAT {
     label 'high_memory'
 	publishDir "${params.output ?: 'results'}/preprocessing", mode: 'copy'
 
-    conda = "${params.conda_base}/envs/r-integration-env"
+    conda "${params.conda_base}/envs/R-integration-env"
 
     input:
         path adata_preprocessed
@@ -12,7 +12,7 @@ process SAVE_SEURAT {
 
     output:
         path "seurat-preprocessed.rds", emit: rds
-        path "seurat-preprocessed.rds_hvg.RDS", emit: rds_hvg
+        path "seurat-preprocessed.hvg.rds", emit: rds_hvg
 
     script:
     """

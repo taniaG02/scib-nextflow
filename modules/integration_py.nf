@@ -3,7 +3,7 @@ process INTEGRATION_PY {
     tag { method }
     publishDir "${params.output}/Integrated", mode: 'copy'
 
-    conda = "${params.conda_base}/envs/scib-cNMF-env"
+    conda "${params.conda_base}/envs/scib-cNMF-env"
 
     input:
     tuple val(method), path(h5ad_file)

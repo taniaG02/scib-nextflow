@@ -45,7 +45,7 @@ params.input_rds = null
 params.input_integrated = null 
 
 // For conda enviroment
-params.conda_base = System.getenv('CONDA_PREFIX') ? System.getenv('CONDA_PREFIX').replaceAll('/envs/.*', '') : "${System.getProperty('user.home')}/miniconda3"
+// params.conda_base = System.getenv('CONDA_PREFIX') ? System.getenv('CONDA_PREFIX').replaceAll('/envs/.*', '') : "${System.getProperty('user.home')}/miniconda3"
 
 // Main workflow
 workflow {

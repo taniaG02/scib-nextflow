@@ -4,19 +4,17 @@ A reproducible Nextflow pipeline for single-cell RNA-seq data integration and be
 
 ## Overview
 
-This pipeline provides a modular, reproducible implementation of [scIB](https://scib.readthedocs.io/en/latest/) in Nextflow, enabling systematic benchmarking of single-cell integration methods across different datasets and batch correction strategies.
-
 **Pipeline inspired by:** [theislab/scib-pipeline](https://github.com/theislab/scib-pipeline.git) (Luecken et al., 2022)
 
 ### Key Features
 
 - **Modular architecture**: Independent processes for preprocessing, integration, and metrics calculation
 - **Multiple integration methods**: 
-  - Python-based: Scanorama, BBKNN, scVI, scANVI, Combat, scGen
+  - Python-based: Scanorama, BBKNN, scVI, Combat
   - R-based: Seurat CCA/RPCA, Harmony, LIGER, FastMNN
 - **Comprehensive metrics**: ARI, NMI, ASW, kBET, LISI, and other scIB metrics
-- **Flexible execution**: Toggle individual pipeline stages via command-line parameters
-- **Reproducibility**: Conda environment management for consistent dependency resolution
+- **Flexible execution**¡
+- **Reproducibility**: Conda environment management
 - **Automated reporting**: Combines metrics across methods and generates comparison plots
 
 ## Pipeline Stages
@@ -32,8 +30,8 @@ The pipeline consists of four main stages:
    - Convert preprocessed AnnData (.h5ad) to Seurat format (.rds) for R-based methods
 
 3. **Integration**
-   - **Python methods**: Scanorama, BBKNN, scVI, scANVI, scGen, Combat
-   - **R methods**: Seurat-CCA, Seurat-RPCA, Harmony, LIGER, FastMNN, Conos
+   - **Python methods**: Scanorama, BBKNN, scVI, Combat
+   - **R methods**: Seurat-CCA, Seurat-RPCA, Harmony, LIGER, FastMNN
 
 4. **Metrics Computation** (Python/scIB)
    - Batch correction metrics: kBET, LISI, ASW (batch)
@@ -65,15 +63,12 @@ cd scib-nextflow
 curl -s https://get.nextflow.io | bash
 ```
 
-3. Make scripts in `bin/` executable:
+<!-- 3. Make scripts in `bin/` executable:
 ```bash
 chmod +x bin/*.py
-```
+``` -->
 
-4. Test with example data
-```bash
-nextflow run main.nf --input data/test.h5ad --batch batch --label_key celltype --organism human
-```
+3. Run the pipeline 
 
 ## Usage
 
@@ -187,6 +182,7 @@ nextflow run /path/to/scib-nextflow/main.nf \
     --input dataset.h5ad \
     --outdir ./results
 ```
+
 #### Compute all steps and generate plots:
 
 ```bash
@@ -198,13 +194,13 @@ nextflow run main.nf \
   --generate_plots true
 ```
 
-#### Compare with reference results:
+<!-- #### Compare with reference results:
 ```bash
 nextflow run main.nf \
     --input data/*.h5ad \
     --reference_metrics /path/to/original_combined_metrics.csv \
     --generate_plots true
-```
+``` -->
 
 #### Resume a previous run:
 ```bash
@@ -237,31 +233,6 @@ results/
     └── ...
 ```
 
-## Repository Structure
-
-```
-scib-nextflow/
-├── main.nf                    # Main workflow entry point
-├── nextflow.config            # Pipeline configuration
-├── modules/                   # Nextflow process modules
-│   ├── preprocessing.nf       # Preprocessing module
-│   ├── save_seurat.nf         # AnnData to Seurat conversion
-│   ├── integration_py.nf      # Python integration methods
-│   ├── integration_r.nf       # R integration methods
-│   └── metrics.nf             # Metrics computation
-├── bin/                       # Executable scripts
-│   ├── preprocessing.py       # Preprocessing script
-│   ├── save-seurat.py         # Conversion script
-│   ├── py_integration.py      # Python integration wrapper
-│   ├── R_integration.R        # R integration wrapper
-│   └── metrics.py             # Metrics calculation script
-├── conda-envs/                # Conda environment specifications
-│   ├── scib-cNMF-env.yml      # Python methods environment
-│   ├── R-integration-env.yml  # R methods environment
-│   └── scib-metrics-env.yml   # Metrics environment
-└── README.md                  # This file
-```
-
 ## Conda Environments
 
 The pipeline uses three separate conda environments to avoid dependency conflicts:
@@ -271,8 +242,7 @@ Contains Python-based integration methods:
 - scIB module
 - Scanorama
 - BBKNN
-- scVI/scANVI
-- scGen
+- scVI
 - Combat (via Scanpy)
 
 ### 2. `R-integration-env` (R Integration)
@@ -281,7 +251,6 @@ Contains R-based integration methods:
 - Harmony
 - LIGER
 - FastMNN
-- Conos
 
 ### 3. `scib-metrics-env` (Metrics)
 Contains dependencies for computing scIB metrics:
@@ -297,9 +266,7 @@ Contains dependencies for computing scIB metrics:
 | **Scanorama** | Panorama-based integration for large datasets | [Hie et al., 2019](https://doi.org/10.1038/s41587-019-0113-3) |
 | **BBKNN** | Batch balanced k-nearest neighbors | [Polański et al., 2020](https://doi.org/10.1093/bioinformatics/btz625) |
 | **scVI** | Variational inference-based deep learning | [Gayoso et al., 2022](https://doi.org/10.1038/s41587-021-01206-w) |
-| **scANVI** | Semi-supervised variant of scVI | Xu et al., 2021 |
 | **Combat** | Classical batch correction method (lineal) | Johnson et al., 2007 |
-| **scGen** | Generative modeling for batch correction | Lotfollahi et al., 2019 |
 
 ### R-based Methods
 
@@ -310,7 +277,6 @@ Contains dependencies for computing scIB metrics:
 | **Harmony** | Fast integration with linear models | [Korsunsky et al., 2019](https://doi.org/10.1038/s41592-019-0619-0) |
 | **LIGER** | Integrative non-negative matrix factorization | [Welch et al., 2019](https://doi.org/10.1016/j.cell.2019.05.006) |
 | **FastMNN** | Fast mutual nearest neighbors | [Haghverdi et al., 2018](https://doi.org/10.1038/nbt.4091) |
-| **Conos** | Joint graph-based integration | Barkas et al., 2019 |
 
 ## Benchmarking Metrics
 
